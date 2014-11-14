@@ -3,110 +3,99 @@
 
 
 ```Verilog
-module Command_decoder(
-    input wire [0:1]COMMAND,
-    output wire [0:3]Q
+module RS_latch(
+    input wire S,
+    input wire R,
+    output wire Q,
+    output wire NQ
     );
 
-// 00 -> 0001  -> NOT_B
-// 01 -> 0010  -> A_OR_B
-// 10 -> 0100  -> A_AND_B
-// 11 -> 1000  -> SUM
-
-assign Q[0] = COMMAND[0] & COMMAND[1];
-assign Q[1] = COMMAND[0] & ~COMMAND[1];
-assign Q[2] = ~COMMAND[0] & COMMAND[1];
-assign Q[3] = ~COMMAND[0] & ~COMMAND[1];
+assign Q = ~(R | NQ);
+assign NQ = ~(S | Q);
 
 endmodule
 
 
-module Sum(
-    input wire ENABLE,
-    input wire A,
-    input wire B,
-    output wire SUM,
-    output wire CARRY
+module D_latch(
+    input wire CLK,
+    input wire D,
+    output wire Q,
+    output wire NQ
     );
+wire R, S;
+assign R = CLK & ~D;
+assign S = D & CLK;
 
-assign {CARRY, SUM} = ((ENABLE & A) + (ENABLE & B));
-
-endmodule
-
-module Logic_unit(
-    input wire [0:2]COMMAND,
-    input wire A,
-    input wire B,
-    output wire NOT_B,
-    output wire A_OR_B,
-    output wire A_AND_B
-    );
-
-assign NOT_B =  COMMAND[0] & (~B);
-
-assign A_OR_B = ((COMMAND[1] & A) | (COMMAND[1] & B));
-
-assign A_AND_B = ((COMMAND[2] & A) & (COMMAND[2] & B));
+RS_latch rs_imp(S, R, Q, NQ);
 
 endmodule
 
 
-module Alu(
-    input wire A,
-    input wire B,
-    input wire [0:1]COMMAND,
-    output wire RES,
-    output wire CARRY
+module D_flip_flope(
+    input wire CLK,
+    input wire D,
+    output wire Q,
+    output wire NQ
     );
 
+wire connect;
 
-wire [0:3]Q;
-wire NOT_B, A_AND_B, A_OR_B, SUM;
+D_latch d_master(~CLK, D, connect, );
+D_latch d_slave(CLK, connect, Q, NQ);
 
-Command_decoder com_imp(COMMAND, Q);
-Sum sum_imp(Q[3], A, B, SUM ,CARRY);
-Logic_unit logic_imp(Q[0:2], A, B, NOT_B, A_OR_B, A_AND_B);
-
-assign RES = NOT_B | A_AND_B | A_OR_B | SUM;
 endmodule
+
+module OneByte(    
+    input wire CLK,
+    input wire [1:8]D,
+    output wire [1:8]Q
+    );
+
+D_flip_flope D1(CLK, D[1], Q[1], );
+D_flip_flope D2(CLK, D[2], Q[2], );
+D_flip_flope D3(CLK, D[3], Q[3], );
+D_flip_flope D4(CLK, D[4], Q[4], );
+D_flip_flope D5(CLK, D[5], Q[5], );
+D_flip_flope D6(CLK, D[6], Q[6], );
+D_flip_flope D7(CLK, D[7], Q[7], );
+D_flip_flope D8(CLK, D[8], Q[8], );
+
+endmodule
+
 
 module test_onebyte;
 
-reg [0:1]com;
-reg a,b;
-wire res, carry;
+reg [1:8]D;
+reg CLK;
+wire [1:8]Q;
 
-Alu alu_imp(a, b, com, res, carry);
+OneByte reg_imp(CLK, D, Q);
 
 
 initial
 begin
-   a = 1;
-   b = 1;
-   com = 2'b00;
+    D = 8'h0; 
+    CLK = 0;
 
-   #10 com = 2'b01;
+    #5 D = 8'h4;
 
-   #10 com = 2'b10;
+    #5 D = 8'hA;
+    #1 CLK = ~CLK; 
 
-   #10 com = 2'b11;
+    #5 D = 8'h9;
+    #1 CLK = ~CLK; 
 
-   #10 a = 0;
-   b = 1;
+    #5 D = 8'b1111_0000;
+    #1 CLK = ~CLK;
 
-   #10 com = 2'b00;
-
-    #10 com = 2'b01;
-
-   #10 com = 2'b10;
-
-   #10 com = 2'b11;
+    #5 D = 8'b0101_1010;
+    #1 CLK = ~CLK; 
 
 end
 
 initial
 begin
-  #150 $finish;
+  #40 $finish;
 end
 
 initial
