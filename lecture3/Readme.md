@@ -164,11 +164,11 @@ module Logic_unit(
     output wire A_AND_B
     );
 
-assign NOT_B =  COMMAND[0] & (~B);
+assign NOT_B =  COMMAND[2] & (~B);
 
 assign A_OR_B = ((COMMAND[1] & A) | (COMMAND[1] & B));
 
-assign A_AND_B = ((COMMAND[2] & A) & (COMMAND[2] & B));
+assign A_AND_B = ((COMMAND[0] & A) & (COMMAND[0] & B));
 
 endmodule
 
@@ -186,8 +186,8 @@ wire [0:3]Q;
 wire NOT_B, A_AND_B, A_OR_B, SUM;
 
 Command_decoder com_imp(COMMAND, Q);
-Sum sum_imp(Q[3], A, B, SUM ,CARRY);
-Logic_unit logic_imp(Q[0:2], A, B, NOT_B, A_OR_B, A_AND_B);
+Sum sum_imp(Q[0], A, B, SUM ,CARRY);
+Logic_unit logic_imp(Q[1:3], A, B, NOT_B, A_OR_B, A_AND_B);
 
 assign RES = NOT_B | A_AND_B | A_OR_B | SUM;
 endmodule
